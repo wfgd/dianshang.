@@ -12,6 +12,10 @@
     <script src="https://unpkg.com/element-plus"></script>
     <!-- Axios -->
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- 自定义请求工具 -->
+    <script src="/js/request.js"></script>
+    <!-- 子组件定义 -->
+    <script src="/js/components.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #f5f7fa; font-family: 'Helvetica Neue', Arial, sans-serif; }
@@ -30,7 +34,11 @@
         .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #ebeef5; background: white; border-radius: 8px; margin-bottom: 10px; }
         .cart-item:last-child { border-bottom: none; }
         .cart-footer { display: flex; justify-content: flex-end; margin-top: 20px; }
-        .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-bar { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+        .category-filter { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .category-tag { padding: 6px 16px; background: white; border-radius: 20px; cursor: pointer; border: 1px solid #d9d9d9; transition: all 0.3s; }
+        .category-tag:hover { border-color: #409eff; color: #409eff; }
+        .category-tag.active { background: #409eff; color: white; border-color: #409eff; }
         .tab-nav { display: flex; gap: 0; margin-bottom: 20px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
         .tab-nav span { padding: 12px 30px; cursor: pointer; color: #606266; font-size: 14px; transition: all 0.3s; }
         .tab-nav span:hover { color: #409eff; }
@@ -41,10 +49,127 @@
         .order-item-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
         .order-footer { text-align: right; font-size: 15px; font-weight: bold; color: #f56c6c; }
         .status-tag { font-size: 12px; }
+        .mock-badge { position: fixed; top: 80px; right: 20px; background: #67c23a; color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; z-index: 999; }
+        
+        /* ========== 促销标签组件样式 ========== */
+        .promotion-tag { 
+            display: inline-block; 
+            padding: 4px 12px; 
+            border-radius: 4px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        /* ========== 倒计时组件样式 ========== */
+        .countdown-timer { 
+            display: inline-flex; 
+            align-items: center; 
+            margin-top: 10px;
+        }
+        .countdown-display { 
+            display: flex; 
+            gap: 10px; 
+            margin-top: 10px;
+        }
+        .countdown-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 4px;
+        }
+        .countdown-value { 
+            background: #f56c6c; 
+            color: white !important; 
+            padding: 6px 10px; 
+            border-radius: 6px; 
+            font-size: 18px; 
+            font-weight: bold;
+            min-width: 40px;
+            text-align: center;
+            display: inline-block;
+        }
+        .countdown-unit { 
+            font-size: 14px; 
+            color: #606266; 
+            margin-left: 2px;
+            display: inline-block;
+        }
+        .countdown-ended { 
+            color: #909399; 
+            font-size: 14px; 
+            margin-top: 10px;
+        }
+        .countdown-label { 
+            font-size: 14px; 
+            color: #606266; 
+            margin-right: 10px;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .countdown-section {
+            background: #fef0f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        /* ========== 商品详情页样式 ========== */
+        .product-detail-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            background: rgba(0,0,0,0.5); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000;
+        }
+        .product-detail-modal { 
+            background: white; 
+            border-radius: 12px; 
+            padding: 30px; 
+            max-width: 600px; 
+            width: 90%; 
+            max-height: 80vh; 
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .product-image-section { 
+            text-align: center; 
+            padding: 20px 0; 
+            border-bottom: 1px solid #ebeef5;
+        }
+        .product-icon { font-size: 80px; margin-bottom: 15px; }
+        .product-info-section { padding: 20px 0; }
+        .product-title { font-size: 24px; color: #303133; margin-bottom: 15px; }
+        .price-section { margin-bottom: 15px; }
+        .original-price { font-size: 14px; color: #909399; margin-right: 20px; }
+        .discounted-price { font-size: 20px; color: #f56c6c; font-weight: bold; }
+        .stock-info { font-size: 14px; color: #606266; margin-bottom: 15px; }
+        .countdown-section { 
+            background: #fef0f0; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .quantity-section { margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .action-buttons { display: flex; gap: 15px; justify-content: center; }
     </style>
 </head>
 <body>
 <div id="app">
+    <!-- Mock模式标识 -->
+    <div v-if="useMock" class="mock-badge">📦 Mock模式</div>
+
     <!-- 登录/注册页面 -->
     <div v-if="!isLoggedIn" class="login-container">
         <h2>电商平台</h2>
@@ -63,6 +188,9 @@
             </el-form-item>
             <el-form-item>
                 <el-button type="primary" size="large" style="width:100%" @click="doLogin" :loading="loginLoading">登 录</el-button>
+            </el-form-item>
+            <el-form-item style="text-align:center;">
+                <span style="color:#409eff;cursor:pointer;" @click="useMockMode">使用Mock数据体验</span>
             </el-form-item>
         </el-form>
 
@@ -103,30 +231,54 @@
 
             <!-- ========== 商品列表 ========== -->
             <div v-if="currentTab==='products'">
+                <!-- 搜索栏 -->
                 <div class="search-bar">
                     <el-input v-model="searchKeyword" placeholder="搜索商品名称..." size="large" clearable @keyup.enter="loadProducts"></el-input>
                     <el-button type="primary" size="large" @click="loadProducts">搜索</el-button>
                 </div>
 
+                <!-- 分类筛选 -->
+                <div class="category-filter">
+                    <span 
+                        v-for="cat in categories" 
+                        :key="cat.id" 
+                        :class="['category-tag', {active: selectedCategory === cat.id}]"
+                        @click="filterByCategory(cat.id)"
+                    >
+                        {{ cat.name }}
+                    </span>
+                </div>
+
+                <!-- 商品卡片 -->
                 <el-card v-for="p in products" :key="p.productId" class="product-card" shadow="hover">
-                    <div class="product-info">
-                        <h3>{{ p.name }}</h3>
+                    <div class="product-info" style="flex:1;">
+                        <h3 style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:24px;">{{ p.image }}</span>
+                            {{ p.name }}
+                        </h3>
                         <div>
                             <span class="price">&yen;{{ p.price }}</span>
                             <span class="stock">库存: {{ p.stock }}</span>
                         </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">
+                        <el-button type="success" size="small" @click="showProductDetail(p)">查看详情</el-button>
                         <el-input-number v-model="productQtys[p.productId]" :min="1" :max="p.stock" size="small" style="width:100px;"></el-input-number>
                         <el-button type="primary" size="small" @click="addToCart(p.productId)">加入购物车</el-button>
                     </div>
                 </el-card>
 
+                <!-- 空状态 -->
+                <div v-if="productTotal === 0" style="text-align:center;padding:60px;color:#909399;">
+                    <p style="font-size:16px;">暂无商品</p>
+                </div>
+
+                <!-- 分页 -->
                 <el-pagination
                     v-if="productTotal > 0"
                     style="margin-top:20px;justify-content:center;"
                     background
-                    layout="prev, pager, next"
+                    layout="prev, pager, next, jumper, ->, total"
                     :total="productTotal"
                     :page-size="productPageSize"
                     v-model:current-page="productPage"
@@ -197,12 +349,68 @@
                     @current-change="loadOrders">
                 </el-pagination>
             </div>
+        <!-- 商品详情弹窗 -->
+        <div v-if="showDetail" class="product-detail-overlay" @click.self="closeProductDetail">
+            <div class="product-detail-modal">
+                <div class="product-image-section">
+                    <div class="product-icon">{{ selectedProduct.image }}</div>
+                    <!-- 促销标签子组件 - 通过props传递促销信息 -->
+                    <PromotionTag 
+                        :type="selectedProduct.promotionType" 
+                        :discount-rate="selectedProduct.discountRate" 
+                    />
+                </div>
+                <div class="product-info-section">
+                    <h2 class="product-title">{{ selectedProduct.name }}</h2>
+                    <div class="price-section">
+                        <span class="original-price">原价: ¥{{ selectedProduct.price }}</span>
+                        <span v-if="selectedProduct.discountRate < 1" class="discounted-price">促销价: ¥{{ (selectedProduct.price * selectedProduct.discountRate).toFixed(2) }}</span>
+                    </div>
+                    <div class="stock-info"><span>库存: {{ selectedProduct.stock }} 件</span></div>
+                    <!-- 倒计时显示 -->
+                    <div v-if="selectedProduct.promotionType === 'limited'" class="countdown-section">
+                        <div class="countdown-label">距离活动结束:</div>
+                        <div v-if="countdownData" class="countdown-display">
+                            <span v-if="countdownData.days > 0" class="countdown-item">
+                                <span class="countdown-value">{{ countdownData.formattedDays }}</span>
+                                <span class="countdown-unit">天</span>
+                            </span>
+                            <span class="countdown-item">
+                                <span class="countdown-value">{{ countdownData.formattedHours }}</span>
+                                <span class="countdown-unit">时</span>
+                            </span>
+                            <span class="countdown-item">
+                                <span class="countdown-value">{{ countdownData.formattedMinutes }}</span>
+                                <span class="countdown-unit">分</span>
+                            </span>
+                            <span class="countdown-item">
+                                <span class="countdown-value">{{ countdownData.formattedSeconds }}</span>
+                                <span class="countdown-unit">秒</span>
+                            </span>
+                        </div>
+                        <div v-else class="countdown-ended">活动已结束</div>
+                    </div>
+                    <div class="quantity-section">
+                        <span>购买数量:</span>
+                        <el-input-number v-model="detailQuantity" :min="1" :max="selectedProduct.stock" size="default" />
+                    </div>
+                    <div class="action-buttons">
+                        <el-button type="primary" size="large" @click="handleAddToCart(selectedProduct.productId)">加入购物车</el-button>
+                        <el-button size="large" @click="closeProductDetail">关闭</el-button>
+                    </div>
+                </div>
+            </div>
+        </div>
         </div>
     </div>
 </div>
+</template>
 
 <script>
 const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
+
+// 获取Element Plus的消息组件
+const ElMessage = ElementPlus.ElMessage;
 
 const app = createApp({
     setup() {
@@ -211,6 +419,7 @@ const app = createApp({
         const username = ref('');
         const userId = ref(null);
         const currentTab = ref('products');
+        const useMock = ref(false);  // 是否使用Mock数据
 
         // ======== 登录 ========
         const loginMode = ref('login');
@@ -229,148 +438,24 @@ const app = createApp({
             password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
         };
 
-        // Axios 拦截器
-        axios.interceptors.request.use(config => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                config.headers.Authorization = 'Bearer ' + token;
-            }
-            return config;
-        }, error => Promise.reject(error));
-
-        axios.interceptors.response.use(
-            response => response,
-            error => {
-                if (error.response && error.response.status === 401) {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    isLoggedIn.value = false;
-                    ElMessage.error('登录已过期，请重新登录');
-                }
-                return Promise.reject(error);
-            }
-        );
-
-        // 检查登录状态
-        const token = localStorage.getItem('token');
-        if (token) {
-            isLoggedIn.value = true;
-            username.value = localStorage.getItem('username') || '';
-            userId.value = parseInt(localStorage.getItem('userId') || '0');
-        }
-
-        function doLogin() {
-            loginLoading.value = true;
-            axios.post('/api/auth/login', {
-                username: loginForm.username,
-                password: loginForm.password
-            }).then(res => {
-                if (res.data.code === 200) {
-                    const data = res.data.data;
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('username', loginForm.username);
-                    localStorage.setItem('userId', data.userId);
-                    username.value = loginForm.username;
-                    userId.value = data.userId;
-                    isLoggedIn.value = true;
-                    ElMessage.success('登录成功');
-                    loadProducts();
-                } else {
-                    ElMessage.error(res.data.message || '登录失败');
-                }
-            }).catch(err => {
-                ElMessage.error('登录请求失败');
-            }).finally(() => {
-                loginLoading.value = false;
-            });
-        }
-
-        function doRegister() {
-            if (!registerForm.username || !registerForm.password) {
-                ElMessage.warning('请填写用户名和密码');
-                return;
-            }
-            regLoading.value = true;
-            axios.post('/api/users/register', {
-                username: registerForm.username,
-                password: registerForm.password,
-                phone: registerForm.phone
-            }).then(res => {
-                if (res.data.code === 200) {
-                    ElMessage.success('注册成功，请登录');
-                    loginMode.value = 'login';
-                    loginForm.username = registerForm.username;
-                    registerForm.username = '';
-                    registerForm.password = '';
-                    registerForm.phone = '';
-                } else {
-                    ElMessage.error(res.data.message || '注册失败');
-                }
-            }).catch(() => {
-                ElMessage.error('注册请求失败');
-            }).finally(() => {
-                regLoading.value = false;
-            });
-        }
-
-        function logout() {
-            localStorage.removeItem('token');
-            localStorage.removeItem('username');
-            localStorage.removeItem('userId');
-            isLoggedIn.value = false;
-            username.value = '';
-            userId.value = null;
-            currentTab.value = 'products';
-        }
-
         // ======== 商品列表 ========
         const products = ref([]);
+        const categories = ref([]);
         const productQtys = reactive({});
         const searchKeyword = ref('');
+        const selectedCategory = ref(0);  // 当前选中的分类ID
         const productPage = ref(1);
-        const productPageSize = ref(10);
+        const productPageSize = ref(6);
         const productTotal = ref(0);
+        const loading = ref(false);
 
-        function loadProducts() {
-            axios.get('/api/products', {
-                params: {
-                    page: productPage.value,
-                    size: productPageSize.value,
-                    keyword: searchKeyword.value || undefined
-                }
-            }).then(res => {
-                if (res.data.code === 200) {
-                    const data = res.data.data;
-                    products.value = data.records || [];
-                    productTotal.value = data.total || 0;
-                    // 初始化数量默认值
-                    products.value.forEach(p => {
-                        if (!(p.productId in productQtys)) {
-                            productQtys[p.productId] = 1;
-                        }
-                    });
-                }
-            }).catch(() => {
-                ElMessage.error('加载商品失败');
-            });
-        }
-
-        function addToCart(productId) {
-            const qty = productQtys[productId] || 1;
-            axios.post('/api/cart/add', {
-                productId: productId,
-                quantity: qty
-            }).then(res => {
-                if (res.data.code === 200) {
-                    ElMessage.success('已加入购物车');
-                    productQtys[productId] = 1;
-                } else {
-                    ElMessage.error(res.data.message);
-                }
-            }).catch(() => {
-                ElMessage.error('操作失败');
-            });
-        }
+        // ======== 商品详情页 ========
+        const showDetail = ref(false);           // 是否显示详情页
+        const selectedProduct = ref(null);       // 当前选中的商品
+        const detailQuantity = ref(1);           // 详情页购买数量
+        const promotionEndTime = ref(null);      // 促销结束时间
+        const countdownData = ref(null);         // 倒计时数据
+        const countdownTimer = ref(null);        // 倒计时定时器
 
         // ======== 购物车 ========
         const cartList = ref([]);
@@ -381,46 +466,6 @@ const app = createApp({
             return Object.keys(cartChecked).filter(k => cartChecked[k]).map(Number);
         });
 
-        function loadCart() {
-            axios.get('/api/cart/list').then(res => {
-                if (res.data.code === 200) {
-                    cartList.value = res.data.data || [];
-                    // 默认全部选中
-                    cartList.value.forEach(item => {
-                        if (!(item.cartId in cartChecked)) {
-                            cartChecked[item.cartId] = true;
-                        }
-                    });
-                }
-            }).catch(() => {
-                ElMessage.error('加载购物车失败');
-            });
-        }
-
-        function createOrder() {
-            if (checkedCartIds.value.length === 0) {
-                ElMessage.warning('请选择要下单的商品');
-                return;
-            }
-            orderLoading.value = true;
-            axios.post('/api/orders/create', {
-                cartItemIds: checkedCartIds.value
-            }).then(res => {
-                if (res.data.code === 200) {
-                    ElMessage.success('下单成功！订单号: #' + res.data.data.orderId);
-                    checkedCartIds.value.forEach(id => delete cartChecked[id]);
-                    loadCart();
-                    switchTab('orders');
-                } else {
-                    ElMessage.error(res.data.message);
-                }
-            }).catch(() => {
-                ElMessage.error('下单失败');
-            }).finally(() => {
-                orderLoading.value = false;
-            });
-        }
-
         // ======== 订单 ========
         const orderList = ref([]);
         const orderItemsMap = ref({});
@@ -428,46 +473,404 @@ const app = createApp({
         const orderPage = ref(1);
         const orderPageSize = ref(10);
 
-        function loadOrders() {
-            axios.get('/api/orders/my', {
-                params: {
-                    page: orderPage.value,
-                    size: orderPageSize.value
-                }
+        /**
+         * 使用Mock模式（无需登录即可体验）
+         */
+        function useMockMode() {
+            useMock.value = true;
+            isLoggedIn.value = true;
+            username.value = 'Mock用户';
+            userId.value = 999;
+            loadCategories();
+            loadProducts();
+        }
+
+        /**
+         * 登录
+         */
+        function doLogin() {
+            loginLoading.value = true;
+            request.post('/auth/login', {
+                username: loginForm.username,
+                password: loginForm.password
             }).then(res => {
-                if (res.data.code === 200) {
-                    const data = res.data.data;
-                    orderList.value = data.orders || [];
-                    orderItemsMap.value = data.items || {};
-                    orderTotal.value = data.total || 0;
-                }
-            }).catch(() => {
-                ElMessage.error('加载订单失败');
+                const data = res.data;
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('username', loginForm.username);
+                localStorage.setItem('userId', data.userId);
+                username.value = loginForm.username;
+                userId.value = data.userId;
+                isLoggedIn.value = true;
+                useMock.value = false;
+                ElMessage.success('登录成功');
+                loadCategories();
+                loadProducts();
+            }).catch(err => {
+                ElMessage.error(err.message || '登录失败');
+            }).finally(() => {
+                loginLoading.value = false;
             });
         }
 
-        // ======== Tab切换 ========
-        function switchTab(tab) {
-            currentTab.value = tab;
-            if (tab === 'products') loadProducts();
-            else if (tab === 'cart') loadCart();
-            else if (tab === 'orders') loadOrders();
+        /**
+         * 注册
+         */
+        function doRegister() {
+            if (!registerForm.username || !registerForm.password) {
+                ElMessage.warning('请填写用户名和密码');
+                return;
+            }
+            regLoading.value = true;
+            request.post('/users/register', {
+                username: registerForm.username,
+                password: registerForm.password,
+                phone: registerForm.phone
+            }).then(res => {
+                ElMessage.success('注册成功，请登录');
+                loginMode.value = 'login';
+                loginForm.username = registerForm.username;
+                registerForm.username = '';
+                registerForm.password = '';
+                registerForm.phone = '';
+            }).catch(err => {
+                ElMessage.error(err.message || '注册失败');
+            }).finally(() => {
+                regLoading.value = false;
+            });
         }
 
-        // ======== 初始化 ========
+        /**
+         * 退出登录
+         */
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            localStorage.removeItem('userId');
+            isLoggedIn.value = false;
+            username.value = '';
+            userId.value = null;
+            useMock.value = false;
+            currentTab.value = 'products';
+        }
+
+        /**
+         * 加载分类列表
+         */
+        function loadCategories() {
+            if (useMock.value) {
+                // 使用Mock数据
+                mockService.getCategories().then(res => {
+                    categories.value = res.data;
+                }).catch(() => {
+                    ElMessage.error('加载分类失败');
+                });
+            } else {
+                // 使用真实接口（后端暂无分类接口，使用Mock兜底）
+                mockService.getCategories().then(res => {
+                    categories.value = res.data;
+                }).catch(() => {
+                    ElMessage.error('加载分类失败');
+                });
+            }
+        }
+
+        /**
+         * 加载商品列表（分页+分类筛选）
+         */
+        function loadProducts() {
+            loading.value = true;
+            
+            if (useMock.value) {
+                // 使用Mock数据
+                mockService.getProducts(
+                    productPage.value,
+                    productPageSize.value,
+                    searchKeyword.value,
+                    selectedCategory.value
+                ).then(res => {
+                    const data = res.data;
+                    products.value = data.records || [];
+                    productTotal.value = data.total || 0;
+                    initProductQtys();
+                }).catch(() => {
+                    ElMessage.error('加载商品失败');
+                }).finally(() => {
+                    loading.value = false;
+                });
+            } else {
+                // 使用真实接口
+                request.get('/products', {
+                    page: productPage.value,
+                    size: productPageSize.value,
+                    keyword: searchKeyword.value || undefined
+                }).then(res => {
+                    const data = res.data;
+                    products.value = data.records || [];
+                    productTotal.value = data.total || 0;
+                    // 如果后端没有分类数据，使用Mock分类
+                    if (categories.value.length === 0) {
+                        loadCategories();
+                    }
+                    initProductQtys();
+                }).catch(err => {
+                    ElMessage.error(err.message || '加载商品失败');
+                }).finally(() => {
+                    loading.value = false;
+                });
+            }
+        }
+
+        /**
+         * 初始化商品数量
+         */
+        function initProductQtys() {
+            products.value.forEach(p => {
+                if (!(p.productId in productQtys)) {
+                    productQtys[p.productId] = 1;
+                }
+            });
+        }
+
+        /**
+         * 分类筛选
+         */
+        function filterByCategory(categoryId) {
+            selectedCategory.value = categoryId;
+            productPage.value = 1;  // 切换分类时回到第一页
+            loadProducts();
+        }
+
+        /**
+         * 添加到购物车
+         */
+        function addToCart(productId) {
+            const qty = productQtys[productId] || 1;
+            
+            if (useMock.value) {
+                // Mock模式下模拟添加购物车
+                ElMessage.success('已加入购物车（Mock模式）');
+                productQtys[productId] = 1;
+            } else {
+                request.post('/cart/add', {
+                    productId: productId,
+                    quantity: qty
+                }).then(res => {
+                    ElMessage.success('已加入购物车');
+                    productQtys[productId] = 1;
+                }).catch(err => {
+                    ElMessage.error(err.message || '操作失败');
+                });
+            }
+        }
+
+        /**
+         * 显示商品详情页
+         */
+        function showProductDetail(product) {
+            console.log('showProductDetail called with:', product);
+            selectedProduct.value = product;
+            detailQuantity.value = 1;
+            showDetail.value = true;
+            
+            // 清除旧定时器
+            if (countdownTimer.value) {
+                clearInterval(countdownTimer.value);
+                countdownTimer.value = null;
+            }
+            
+            // 设置促销结束时间（当前时间+1天+8小时=32小时）
+            if (product.promotionType === 'limited') {
+                const end = new Date();
+                end.setDate(end.getDate() + 1);  // 加1天
+                end.setHours(end.getHours() + 8); // 再加8小时
+                const endTimestamp = end.getTime();
+                
+                // 更新倒计时
+                function updateCountdown() {
+                    const now = Date.now();
+                    const remaining = Math.max(0, endTimestamp - now);
+                    
+                    const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+                    
+                    countdownData.value = {
+                        days, hours, minutes, seconds,
+                        formattedDays: String(days).padStart(2, '0'),
+                        formattedHours: String(hours).padStart(2, '0'),
+                        formattedMinutes: String(minutes).padStart(2, '0'),
+                        formattedSeconds: String(seconds).padStart(2, '0')
+                    };
+                    
+                    if (remaining <= 0) {
+                        if (countdownTimer.value) {
+                            clearInterval(countdownTimer.value);
+                            countdownTimer.value = null;
+                        }
+                        countdownData.value = null;
+                    }
+                }
+                
+                updateCountdown();
+                countdownTimer.value = setInterval(updateCountdown, 1000);
+            } else {
+                countdownData.value = null;
+            }
+            
+            console.log('showDetail set to:', showDetail.value);
+        }
+
+        /**
+         * 倒计时结束回调
+         */
+        function onCountdownEnd() {
+            ElMessage.warning('促销活动已结束');
+        }
+
+        /**
+         * 关闭商品详情页
+         */
+        function closeProductDetail() {
+            showDetail.value = false;
+            selectedProduct.value = null;
+            promotionEndTime.value = null;
+        }
+
+        /**
+         * 处理详情页的加入购物车事件
+         */
+        function handleAddToCart(productId) {
+            const qty = detailQuantity.value;
+            if (useMock.value) {
+                ElMessage.success(`已加入购物车（Mock模式）- 数量: ${qty}`);
+            } else {
+                request.post('/cart/add', {
+                    productId: productId,
+                    quantity: qty
+                }).then(res => {
+                    ElMessage.success('已加入购物车');
+                }).catch(err => {
+                    ElMessage.error(err.message || '操作失败');
+                });
+            }
+            closeProductDetail();
+        }
+
+        /**
+         * 加载购物车
+         */
+        function loadCart() {
+            if (useMock.value) {
+                cartList.value = [];
+                ElMessage.info('购物车功能在Mock模式下暂不可用');
+                return;
+            }
+
+            request.get('/cart/list').then(res => {
+                cartList.value = res.data || [];
+                cartList.value.forEach(item => {
+                    if (!(item.cartId in cartChecked)) {
+                        cartChecked[item.cartId] = true;
+                    }
+                });
+            }).catch(err => {
+                ElMessage.error(err.message || '加载购物车失败');
+            });
+        }
+
+        /**
+         * 创建订单
+         */
+        function createOrder() {
+            if (useMock.value) {
+                ElMessage.info('订单功能在Mock模式下暂不可用');
+                return;
+            }
+
+            if (checkedCartIds.value.length === 0) {
+                ElMessage.warning('请选择要下单的商品');
+                return;
+            }
+            orderLoading.value = true;
+            request.post('/orders/create', {
+                cartItemIds: checkedCartIds.value
+            }).then(res => {
+                ElMessage.success('下单成功！订单号: #' + res.data.orderId);
+                checkedCartIds.value.forEach(id => delete cartChecked[id]);
+                loadCart();
+                switchTab('orders');
+            }).catch(err => {
+                ElMessage.error(err.message || '下单失败');
+            }).finally(() => {
+                orderLoading.value = false;
+            });
+        }
+
+        /**
+         * 加载订单
+         */
+        function loadOrders() {
+            if (useMock.value) {
+                orderList.value = [];
+                ElMessage.info('订单功能在Mock模式下暂不可用');
+                return;
+            }
+
+            request.get('/orders/my', {
+                page: orderPage.value,
+                size: orderPageSize.value
+            }).then(res => {
+                const data = res.data;
+                orderList.value = data.orders || [];
+                orderItemsMap.value = data.items || {};
+                orderTotal.value = data.total || 0;
+            }).catch(err => {
+                ElMessage.error(err.message || '加载订单失败');
+            });
+        }
+
+        /**
+         * Tab切换
+         */
+        function switchTab(tab) {
+            currentTab.value = tab;
+            if (tab === 'products') {
+                loadProducts();
+            } else if (tab === 'cart') {
+                loadCart();
+            } else if (tab === 'orders') {
+                loadOrders();
+            }
+        }
+
+        /**
+         * 初始化
+         */
         onMounted(() => {
+            // 检查登录状态
+            const token = localStorage.getItem('token');
+            if (token) {
+                isLoggedIn.value = true;
+                username.value = localStorage.getItem('username') || '';
+                userId.value = parseInt(localStorage.getItem('userId') || '0');
+            }
+            
             if (isLoggedIn.value) {
+                loadCategories();
                 loadProducts();
             }
         });
 
         return {
-            isLoggedIn, username, userId, currentTab,
+            isLoggedIn, username, userId, currentTab, useMock,
             loginMode, loginForm, loginLoading, loginRules, doLogin,
             registerForm, regLoading, registerRules, doRegister,
-            logout,
-            products, productQtys, searchKeyword, productPage, productPageSize, productTotal,
-            loadProducts, addToCart,
+            useMockMode, logout,
+            products, categories, productQtys, searchKeyword, selectedCategory,
+            productPage, productPageSize, productTotal, loading,
+            loadProducts, filterByCategory, addToCart,
+            showDetail, selectedProduct, detailQuantity, countdownData, showProductDetail, closeProductDetail, handleAddToCart,
             cartList, cartChecked, checkedCartIds, orderLoading, loadCart, createOrder,
             orderList, orderItemsMap, orderTotal, orderPage, orderPageSize, loadOrders,
             switchTab
@@ -476,6 +879,10 @@ const app = createApp({
 });
 
 app.use(ElementPlus);
+// 注册促销标签子组件
+app.component('PromotionTag', PromotionTag);
+// 注册倒计时子组件
+app.component('CountdownTimer', CountdownTimer);
 app.mount('#app');
 </script>
 </body>
