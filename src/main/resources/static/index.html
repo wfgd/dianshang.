@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电商平台</title>
+    <!-- Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <!-- Element Plus -->
+    <script src="https://unpkg.com/element-plus"></script>
+    <!-- Axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f5f7fa; font-family: 'Helvetica Neue', Arial, sans-serif; }
+        .app-container { min-height: 100vh; }
+        .header { background: #409eff; color: white; padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
+        .header h2 { font-size: 20px; }
+        .header-right { display: flex; align-items: center; gap: 15px; }
+        .page-container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        .login-container { max-width: 400px; margin: 100px auto; padding: 40px; background: white; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+        .login-container h2 { text-align: center; margin-bottom: 30px; color: #303133; }
+        .product-card { margin-bottom: 15px; }
+        .product-card .el-card__body { display: flex; justify-content: space-between; align-items: center; padding: 20px; }
+        .product-info h3 { font-size: 16px; margin-bottom: 8px; }
+        .product-info .price { color: #f56c6c; font-size: 18px; font-weight: bold; }
+        .product-info .stock { color: #909399; font-size: 13px; margin-left: 10px; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #ebeef5; background: white; border-radius: 8px; margin-bottom: 10px; }
+        .cart-item:last-child { border-bottom: none; }
+        .cart-footer { display: flex; justify-content: flex-end; margin-top: 20px; }
+        .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-nav { display: flex; gap: 0; margin-bottom: 20px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .tab-nav span { padding: 12px 30px; cursor: pointer; color: #606266; font-size: 14px; transition: all 0.3s; }
+        .tab-nav span:hover { color: #409eff; }
+        .tab-nav span.active { background: #409eff; color: white; }
+        .order-card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .order-header { display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #ebeef5; margin-bottom: 12px; color: #909399; font-size: 13px; }
+        .order-items { margin-bottom: 12px; }
+        .order-item-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+        .order-footer { text-align: right; font-size: 15px; font-weight: bold; color: #f56c6c; }
+        .status-tag { font-size: 12px; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <!-- 登录/注册页面 -->
+    <div v-if="!isLoggedIn" class="login-container">
+        <h2>电商平台</h2>
+        <div style="display:flex;margin-bottom:20px;border-bottom:2px solid #ebeef5;">
+            <span @click="loginMode='login'" :style="{padding:'8px 20px',cursor:'pointer',borderBottom:loginMode==='login'?'2px solid #409eff':'2px solid transparent',color:loginMode==='login'?'#409eff':'#909399',marginBottom:'-2px',fontSize:'15px'}">登录</span>
+            <span @click="loginMode='register'" :style="{padding:'8px 20px',cursor:'pointer',borderBottom:loginMode==='register'?'2px solid #409eff':'2px solid transparent',color:loginMode==='register'?'#409eff':'#909399',marginBottom:'-2px',fontSize:'15px'}">注册</span>
+        </div>
+
+        <!-- 登录表单 -->
+        <el-form v-if="loginMode==='login'" :model="loginForm" :rules="loginRules">
+            <el-form-item prop="username">
+                <el-input v-model="loginForm.username" placeholder="用户名" size="large" clearable></el-input>
+            </el-form-item>
+            <el-form-item prop="password">
+                <el-input v-model="loginForm.password" type="password" placeholder="密码" size="large" show-password @keyup.enter="doLogin"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" size="large" style="width:100%" @click="doLogin" :loading="loginLoading">登 录</el-button>
+            </el-form-item>
+        </el-form>
+
+        <!-- 注册表单 -->
+        <el-form v-if="loginMode==='register'" :model="registerForm" :rules="registerRules">
+            <el-form-item prop="username">
+                <el-input v-model="registerForm.username" placeholder="用户名" size="large" clearable></el-input>
+            </el-form-item>
+            <el-form-item prop="password">
+                <el-input v-model="registerForm.password" type="password" placeholder="密码" size="large" show-password></el-input>
+            </el-form-item>
+            <el-form-item prop="phone">
+                <el-input v-model="registerForm.phone" placeholder="手机号（选填）" size="large" clearable></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="success" size="large" style="width:100%" @click="doRegister" :loading="regLoading">注 册</el-button>
+            </el-form-item>
+        </el-form>
+    </div>
+
+    <!-- 主页面 -->
+    <div v-else class="app-container">
+        <div class="header">
+            <h2>电商平台</h2>
+            <div class="header-right">
+                <span>用户: {{ username }}</span>
+                <el-button type="danger" size="small" @click="logout">退出登录</el-button>
+            </div>
+        </div>
+
+        <div class="page-container">
+            <!-- 标签导航 -->
+            <div class="tab-nav">
+                <span :class="{active: currentTab==='products'}" @click="switchTab('products')">商品列表</span>
+                <span :class="{active: currentTab==='cart'}" @click="switchTab('cart')">购物车</span>
+                <span :class="{active: currentTab==='orders'}" @click="switchTab('orders')">我的订单</span>
+            </div>
+
+            <!-- ========== 商品列表 ========== -->
+            <div v-if="currentTab==='products'">
+                <div class="search-bar">
+                    <el-input v-model="searchKeyword" placeholder="搜索商品名称..." size="large" clearable @keyup.enter="loadProducts"></el-input>
+                    <el-button type="primary" size="large" @click="loadProducts">搜索</el-button>
+                </div>
+
+                <el-card v-for="p in products" :key="p.productId" class="product-card" shadow="hover">
+                    <div class="product-info">
+                        <h3>{{ p.name }}</h3>
+                        <div>
+                            <span class="price">&yen;{{ p.price }}</span>
+                            <span class="stock">库存: {{ p.stock }}</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <el-input-number v-model="productQtys[p.productId]" :min="1" :max="p.stock" size="small" style="width:100px;"></el-input-number>
+                        <el-button type="primary" size="small" @click="addToCart(p.productId)">加入购物车</el-button>
+                    </div>
+                </el-card>
+
+                <el-pagination
+                    v-if="productTotal > 0"
+                    style="margin-top:20px;justify-content:center;"
+                    background
+                    layout="prev, pager, next"
+                    :total="productTotal"
+                    :page-size="productPageSize"
+                    v-model:current-page="productPage"
+                    @current-change="loadProducts">
+                </el-pagination>
+            </div>
+
+            <!-- ========== 购物车 ========== -->
+            <div v-if="currentTab==='cart'">
+                <div v-if="cartList.length === 0" style="text-align:center;padding:60px;color:#909399;">
+                    <p style="font-size:16px;">购物车为空</p>
+                    <el-button type="primary" style="margin-top:15px;" @click="switchTab('products')">去逛逛</el-button>
+                </div>
+
+                <div v-else>
+                    <div v-for="item in cartList" :key="item.cartId" class="cart-item">
+                        <div style="flex:1;">
+                            <span style="font-weight:bold;">商品ID: {{ item.productId }}</span>
+                        </div>
+                        <div style="margin:0 20px;">
+                            <span>数量: {{ item.quantity }}</span>
+                        </div>
+                        <el-checkbox v-model="cartChecked[item.cartId]"></el-checkbox>
+                    </div>
+                    <div class="cart-footer">
+                        <el-button type="danger" size="large" @click="createOrder" :loading="orderLoading"
+                            :disabled="checkedCartIds.length === 0">
+                            下单 (已选{{ checkedCartIds.length }}项)
+                        </el-button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 我的订单 ========== -->
+            <div v-if="currentTab==='orders'">
+                <div v-if="orderList.length === 0" style="text-align:center;padding:60px;color:#909399;">
+                    <p style="font-size:16px;">暂无订单</p>
+                </div>
+
+                <div v-for="order in orderList" :key="order.orderId" class="order-card">
+                    <div class="order-header">
+                        <span>订单号: #{{ order.orderId }}</span>
+                        <span>{{ order.createTime }}</span>
+                        <el-tag :type="order.status === 0 ? 'warning' : 'success'" size="small" class="status-tag">
+                            {{ order.status === 0 ? '待支付' : '已完成' }}
+                        </el-tag>
+                    </div>
+                    <div class="order-items">
+                        <div v-for="item in (orderItemsMap[order.orderId] || [])" :key="item.itemId" class="order-item-row">
+                            <span>商品ID: {{ item.productId }}</span>
+                            <span>&yen;{{ item.price }} x {{ item.quantity }}</span>
+                            <span style="font-weight:bold;">&yen;{{ (item.price * item.quantity).toFixed(2) }}</span>
+                        </div>
+                    </div>
+                    <div class="order-footer">
+                        合计: &yen;{{ order.totalAmount.toFixed(2) }}
+                    </div>
+                </div>
+
+                <el-pagination
+                    v-if="orderTotal > 0"
+                    style="margin-top:20px;justify-content:center;"
+                    background
+                    layout="prev, pager, next"
+                    :total="orderTotal"
+                    :page-size="orderPageSize"
+                    v-model:current-page="orderPage"
+                    @current-change="loadOrders">
+                </el-pagination>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
+
+const app = createApp({
+    setup() {
+        // ======== 全局状态 ========
+        const isLoggedIn = ref(false);
+        const username = ref('');
+        const userId = ref(null);
+        const currentTab = ref('products');
+
+        // ======== 登录 ========
+        const loginMode = ref('login');
+        const loginForm = reactive({ username: '', password: '' });
+        const loginLoading = ref(false);
+        const loginRules = {
+            username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+            password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+        };
+
+        // ======== 注册 ========
+        const registerForm = reactive({ username: '', password: '', phone: '' });
+        const regLoading = ref(false);
+        const registerRules = {
+            username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+            password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+        };
+
+        // Axios 拦截器
+        axios.interceptors.request.use(config => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                config.headers.Authorization = 'Bearer ' + token;
+            }
+            return config;
+        }, error => Promise.reject(error));
+
+        axios.interceptors.response.use(
+            response => response,
+            error => {
+                if (error.response && error.response.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    isLoggedIn.value = false;
+                    ElMessage.error('登录已过期，请重新登录');
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        // 检查登录状态
+        const token = localStorage.getItem('token');
+        if (token) {
+            isLoggedIn.value = true;
+            username.value = localStorage.getItem('username') || '';
+            userId.value = parseInt(localStorage.getItem('userId') || '0');
+        }
+
+        function doLogin() {
+            loginLoading.value = true;
+            axios.post('/api/auth/login', {
+                username: loginForm.username,
+                password: loginForm.password
+            }).then(res => {
+                if (res.data.code === 200) {
+                    const data = res.data.data;
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('username', loginForm.username);
+                    localStorage.setItem('userId', data.userId);
+                    username.value = loginForm.username;
+                    userId.value = data.userId;
+                    isLoggedIn.value = true;
+                    ElMessage.success('登录成功');
+                    loadProducts();
+                } else {
+                    ElMessage.error(res.data.message || '登录失败');
+                }
+            }).catch(err => {
+                ElMessage.error('登录请求失败');
+            }).finally(() => {
+                loginLoading.value = false;
+            });
+        }
+
+        function doRegister() {
+            if (!registerForm.username || !registerForm.password) {
+                ElMessage.warning('请填写用户名和密码');
+                return;
+            }
+            regLoading.value = true;
+            axios.post('/api/users/register', {
+                username: registerForm.username,
+                password: registerForm.password,
+                phone: registerForm.phone
+            }).then(res => {
+                if (res.data.code === 200) {
+                    ElMessage.success('注册成功，请登录');
+                    loginMode.value = 'login';
+                    loginForm.username = registerForm.username;
+                    registerForm.username = '';
+                    registerForm.password = '';
+                    registerForm.phone = '';
+                } else {
+                    ElMessage.error(res.data.message || '注册失败');
+                }
+            }).catch(() => {
+                ElMessage.error('注册请求失败');
+            }).finally(() => {
+                regLoading.value = false;
+            });
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            localStorage.removeItem('userId');
+            isLoggedIn.value = false;
+            username.value = '';
+            userId.value = null;
+            currentTab.value = 'products';
+        }
+
+        // ======== 商品列表 ========
+        const products = ref([]);
+        const productQtys = reactive({});
+        const searchKeyword = ref('');
+        const productPage = ref(1);
+        const productPageSize = ref(10);
+        const productTotal = ref(0);
+
+        function loadProducts() {
+            axios.get('/api/products', {
+                params: {
+                    page: productPage.value,
+                    size: productPageSize.value,
+                    keyword: searchKeyword.value || undefined
+                }
+            }).then(res => {
+                if (res.data.code === 200) {
+                    const data = res.data.data;
+                    products.value = data.records || [];
+                    productTotal.value = data.total || 0;
+                    // 初始化数量默认值
+                    products.value.forEach(p => {
+                        if (!(p.productId in productQtys)) {
+                            productQtys[p.productId] = 1;
+                        }
+                    });
+                }
+            }).catch(() => {
+                ElMessage.error('加载商品失败');
+            });
+        }
+
+        function addToCart(productId) {
+            const qty = productQtys[productId] || 1;
+            axios.post('/api/cart/add', {
+                productId: productId,
+                quantity: qty
+            }).then(res => {
+                if (res.data.code === 200) {
+                    ElMessage.success('已加入购物车');
+                    productQtys[productId] = 1;
+                } else {
+                    ElMessage.error(res.data.message);
+                }
+            }).catch(() => {
+                ElMessage.error('操作失败');
+            });
+        }
+
+        // ======== 购物车 ========
+        const cartList = ref([]);
+        const cartChecked = reactive({});
+        const orderLoading = ref(false);
+
+        const checkedCartIds = computed(() => {
+            return Object.keys(cartChecked).filter(k => cartChecked[k]).map(Number);
+        });
+
+        function loadCart() {
+            axios.get('/api/cart/list').then(res => {
+                if (res.data.code === 200) {
+                    cartList.value = res.data.data || [];
+                    // 默认全部选中
+                    cartList.value.forEach(item => {
+                        if (!(item.cartId in cartChecked)) {
+                            cartChecked[item.cartId] = true;
+                        }
+                    });
+                }
+            }).catch(() => {
+                ElMessage.error('加载购物车失败');
+            });
+        }
+
+        function createOrder() {
+            if (checkedCartIds.value.length === 0) {
+                ElMessage.warning('请选择要下单的商品');
+                return;
+            }
+            orderLoading.value = true;
+            axios.post('/api/orders/create', {
+                cartItemIds: checkedCartIds.value
+            }).then(res => {
+                if (res.data.code === 200) {
+                    ElMessage.success('下单成功！订单号: #' + res.data.data.orderId);
+                    checkedCartIds.value.forEach(id => delete cartChecked[id]);
+                    loadCart();
+                    switchTab('orders');
+                } else {
+                    ElMessage.error(res.data.message);
+                }
+            }).catch(() => {
+                ElMessage.error('下单失败');
+            }).finally(() => {
+                orderLoading.value = false;
+            });
+        }
+
+        // ======== 订单 ========
+        const orderList = ref([]);
+        const orderItemsMap = ref({});
+        const orderTotal = ref(0);
+        const orderPage = ref(1);
+        const orderPageSize = ref(10);
+
+        function loadOrders() {
+            axios.get('/api/orders/my', {
+                params: {
+                    page: orderPage.value,
+                    size: orderPageSize.value
+                }
+            }).then(res => {
+                if (res.data.code === 200) {
+                    const data = res.data.data;
+                    orderList.value = data.orders || [];
+                    orderItemsMap.value = data.items || {};
+                    orderTotal.value = data.total || 0;
+                }
+            }).catch(() => {
+                ElMessage.error('加载订单失败');
+            });
+        }
+
+        // ======== Tab切换 ========
+        function switchTab(tab) {
+            currentTab.value = tab;
+            if (tab === 'products') loadProducts();
+            else if (tab === 'cart') loadCart();
+            else if (tab === 'orders') loadOrders();
+        }
+
+        // ======== 初始化 ========
+        onMounted(() => {
+            if (isLoggedIn.value) {
+                loadProducts();
+            }
+        });
+
+        return {
+            isLoggedIn, username, userId, currentTab,
+            loginMode, loginForm, loginLoading, loginRules, doLogin,
+            registerForm, regLoading, registerRules, doRegister,
+            logout,
+            products, productQtys, searchKeyword, productPage, productPageSize, productTotal,
+            loadProducts, addToCart,
+            cartList, cartChecked, checkedCartIds, orderLoading, loadCart, createOrder,
+            orderList, orderItemsMap, orderTotal, orderPage, orderPageSize, loadOrders,
+            switchTab
+        };
+    }
+});
+
+app.use(ElementPlus);
+app.mount('#app');
+</script>
+</body>
+</html>
