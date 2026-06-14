@@ -2,6 +2,7 @@ package com.ecommerce.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ecommerce.dto.OrderCreateDTO;
+import com.ecommerce.dto.OrderStatusDTO;
 import com.ecommerce.entity.OrderItems;
 import com.ecommerce.entity.Orders;
 import com.ecommerce.mapper.OrderItemsMapper;
@@ -24,6 +25,7 @@ public class OrderController {
     @Autowired
     private OrderItemsMapper orderItemsMapper;
 
+    // ==================== 创建订单 ====================
     @PostMapping("/create")
     public Result<Map<String, Object>> create(@RequestAttribute("userId") Integer userId,
                                                @RequestBody OrderCreateDTO dto) {
@@ -37,13 +39,13 @@ public class OrderController {
         }
     }
 
+    // ==================== 分页查询我的订单 ====================
     @GetMapping("/my")
     public Result<Map<String, Object>> myOrders(@RequestAttribute("userId") Integer userId,
                                                  @RequestParam(defaultValue = "1") int page,
                                                  @RequestParam(defaultValue = "10") int size) {
         Page<Orders> orderPage = ordersService.pageMyOrders(userId, page, size);
 
-        // 查询每个订单的明细
         Map<Integer, List<OrderItems>> itemsMap = new HashMap<>();
         for (Orders order : orderPage.getRecords()) {
             List<OrderItems> items = orderItemsMapper.selectList(
@@ -58,5 +60,43 @@ public class OrderController {
         data.put("total", orderPage.getTotal());
         data.put("items", itemsMap);
         return Result.success(data);
+    }
+
+    // ==================== 查询单个订单（含明细） ====================
+    @GetMapping("/{orderId}")
+    public Result<Map<String, Object>> getOrder(@RequestAttribute("userId") Integer userId,
+                                                 @PathVariable Integer orderId) {
+        try {
+            Map<String, Object> data = ordersService.getOrderDetail(orderId, userId);
+            return Result.success(data);
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    // ==================== 修改订单状态 ====================
+    @PutMapping("/{orderId}/status")
+    public Result<String> updateStatus(@RequestAttribute("userId") Integer userId,
+                                        @PathVariable Integer orderId,
+                                        @RequestBody OrderStatusDTO dto) {
+        try {
+            ordersService.updateOrderStatus(orderId, userId, dto.getStatus());
+            String msg = dto.getStatus() == 1 ? "订单已支付" : "订单已取消";
+            return Result.success(msg);
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    // ==================== 删除订单 ====================
+    @DeleteMapping("/{orderId}")
+    public Result<String> deleteOrder(@RequestAttribute("userId") Integer userId,
+                                       @PathVariable Integer orderId) {
+        try {
+            ordersService.deleteOrder(orderId, userId);
+            return Result.success("订单已删除");
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        }
     }
 }

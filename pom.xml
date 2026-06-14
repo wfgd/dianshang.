@@ -32,7 +32,7 @@
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-boot-starter</artifactId>
-            <version>3.5.3.1</version>
+            <version>3.5.8</version>
         </dependency>
 
         <!-- H2 内嵌数据库（默认，无需安装） -->
@@ -46,7 +46,7 @@
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
-            <version>12.4.2.jre8</version>
+            <version>12.8.1.jre11</version>
             <scope>runtime</scope>
         </dependency>
 

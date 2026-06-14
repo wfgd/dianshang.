@@ -25,7 +25,7 @@ public class JwtAuthenticationFilter implements Filter {
 
         // 登录和注册接口不需要验证
         String path = httpRequest.getRequestURI();
-        if (path.contains("/api/auth/login") || path.contains("/api/users/register")) {
+        if (path.contains("/api/auth/login") || path.contains("/api/auth/register") || path.contains("/api/users/register")) {
             chain.doFilter(request, response);
             return;
         }

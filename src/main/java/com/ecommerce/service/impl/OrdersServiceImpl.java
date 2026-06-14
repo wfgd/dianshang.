@@ -11,8 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> implements OrdersService {
@@ -92,5 +91,64 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
         wrapper.eq(Orders::getUserId, userId)
                .orderByDesc(Orders::getCreateTime);
         return baseMapper.selectPage(pageParam, wrapper);
+    }
+
+    @Override
+    public Map<String, Object> getOrderDetail(Integer orderId, Integer userId) {
+        Orders order = baseMapper.selectById(orderId);
+        if (order == null) {
+            throw new RuntimeException("订单不存在");
+        }
+        if (!order.getUserId().equals(userId)) {
+            throw new RuntimeException("无权查看该订单");
+        }
+
+        List<OrderItems> items = orderItemsMapper.selectList(
+                new LambdaQueryWrapper<OrderItems>()
+                        .eq(OrderItems::getOrderId, orderId)
+        );
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("order", order);
+        result.put("items", items);
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateOrderStatus(Integer orderId, Integer userId, Integer status) {
+        Orders order = baseMapper.selectById(orderId);
+        if (order == null) {
+            throw new RuntimeException("订单不存在");
+        }
+        if (!order.getUserId().equals(userId)) {
+            throw new RuntimeException("无权操作该订单");
+        }
+        // 状态流转：0待支付→1已支付，0待支付→2已取消
+        if (order.getStatus() != 0) {
+            throw new RuntimeException("当前订单状态不允许修改");
+        }
+        if (status != 1 && status != 2) {
+            throw new RuntimeException("无效的状态值，允许：1=已支付, 2=已取消");
+        }
+        order.setStatus(status);
+        baseMapper.updateById(order);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteOrder(Integer orderId, Integer userId) {
+        Orders order = baseMapper.selectById(orderId);
+        if (order == null) {
+            throw new RuntimeException("订单不存在");
+        }
+        if (!order.getUserId().equals(userId)) {
+            throw new RuntimeException("无权删除该订单");
+        }
+        // 先删除订单明细
+        orderItemsMapper.delete(new LambdaQueryWrapper<OrderItems>()
+                .eq(OrderItems::getOrderId, orderId));
+        // 再删除订单
+        baseMapper.deleteById(orderId);
     }
 }
